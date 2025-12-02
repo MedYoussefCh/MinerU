@@ -1,46 +1,63 @@
 # Local demo setup (pipeline + VLLM)
 
-This guide keeps every model artifact inside the repository so you can run `demo/demo.py` fully offline.
+This guide keeps every model artifact inside the repository so you can run `demo/demo.py` fully offline. Follow the checklist
+from start to finish on a fresh machine.
 
-## 1) Install MinerU with VLLM extras
+## 0) Prerequisites
+- Python 3.10–3.13 (3.10 works with the published vLLM wheels).
+- CUDA 12.x drivers (e.g., 12.8) with an NVIDIA GPU such as L40S.
+- Models already downloaded into `./models` plus the generated `mineru.local.json` in the repo root (from
+  `scripts/prepare_local_models.sh` or your manual download).
+
+## 1) Create a virtual environment and install MinerU with VLLM extras
 
 ```bash
-uv pip install "mineru[core,vllm]"
+python3 -m venv .venv
+source .venv/bin/activate
+uv pip install "mineru[core,vllm]"  # or: pip install "mineru[core,vllm]"
 ```
 
-## 2) Download all models into `./models`
-
-Use the helper script which pins the cache directory to the repo and writes a config file alongside it:
-
-```bash
-scripts/prepare_local_models.sh
-# Optional overrides:
-#   MINERU_MODEL_SOURCE=modelscope   # or huggingface (default)
-#   MINERU_MODEL_CACHE_DIR=/custom/path
-#   MINERU_TOOLS_CONFIG_JSON=/custom/path/mineru.local.json
-```
-
-This downloads both the pipeline bundle and the `MinerU2.5-2509-1.2B` VLM locally and generates `mineru.local.json` pointing to them.
-
-## 3) Run the demo with local models
-
-Use the generated config and force local loading:
+## 2) Point MinerU to the repo-local config and models
 
 ```bash
 export MINERU_TOOLS_CONFIG_JSON="$(pwd)/mineru.local.json"
 export MINERU_MODEL_SOURCE=local
-python demo/demo.py
 ```
 
-### Running against a VLLM server (optional)
+If you relocated the models, edit `mineru.local.json` to update `models-dir.pipeline` and `models-dir.vlm` so they match your
+paths.
 
-If you prefer the VLM HTTP client, start a VLLM server on your desired port (e.g. 8000) using the downloaded model path, then point the demo to it:
+## 3) Quick test with the default pipeline backend
 
 ```bash
-mineru-openai-server --engine vllm --model ./models/MinerU2.5-2509-1.2B --port 8000
-export MINERU_TOOLS_CONFIG_JSON="$(pwd)/mineru.local.json"
-export MINERU_MODEL_SOURCE=local
-python demo/demo.py --backend vlm-http-client --server_url http://127.0.0.1:8000
+python demo/demo.py -p /path/to/your.pdf -o ./output
 ```
 
-This keeps all downloads and configuration within the repository directory for easy testing.
+- Results (Markdown, JSON, annotated PDFs) will appear in `./output/<pdf_name>/`.
+- Use `--start_page_id` / `--end_page_id` to limit pages if needed.
+
+## 4) Run with the VLLM backend
+
+### Option A — local engine (no HTTP server)
+```bash
+python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-vllm-engine
+```
+
+### Option B — HTTP client talking to your vLLM server
+1. Start the server on your preferred port (e.g., 8000):
+   ```bash
+   mineru-openai-server --engine vllm --model ./models/MinerU2.5-2509-1.2B --port 8000
+   ```
+2. Run the demo against it:
+   ```bash
+   python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-http-client --server_url http://127.0.0.1:8000
+   ```
+
+> Tip: If your server is exposed over TLS, replace `http://` with `https://` in `--server_url`.
+
+## 5) What to expect / troubleshoot
+- The demo prints the output folder path upon completion; inspect the Markdown and `_middle.json` files there.
+- If vLLM fails to load on GPU, verify your CUDA driver matches the installed wheel (CUDA 12.x) and that `nvidia-smi` lists your
+  L40S.
+- If MinerU reports missing models, ensure `mineru.local.json` points to where you installed the assets and that
+  `MINERU_MODEL_SOURCE=local` is set.
