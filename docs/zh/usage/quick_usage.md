@@ -70,6 +70,13 @@ mineru -p <input_path> -o <output_path> -b vlm-transformers
 > ```
 >若服务端启用了TLS，可在`-u/--url`中将`http`替换为`https`（例如`https://your.domain:30000`）。
 
+>[!TIP]
+>若只想验证 VLM 模型（跳过 pipeline 模型），可先在 `mineru.json` 或 `MINERU_TOOLS_CONFIG_JSON` 中写入本地 VLM 路径，
+>再直接使用 VLLM 引擎运行 demo：
+>```bash
+>MINERU_MODEL_SOURCE=local python demo/demo.py -p <input_path> -o <output_path> --backend vlm-vllm-engine
+>```
+
 >[!IMPORTANT]
 >vLLM 加速包支持的 Python 版本为 3.10–3.13，并使用 CUDA 12 版预编译包。如果显卡驱动已满足 Docker 快速部署文档中的“CUDA 12.8 或更高”要求且当前环境是 Python 3.10，那么类似 L40S 这类 CUDA 12 级别的 GPU 可以直接运行 `vlm-vllm-engine` 和 `vlm-http-client` 后端，无需额外修改。
 

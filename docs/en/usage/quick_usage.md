@@ -72,6 +72,13 @@ If you need to adjust parsing options through custom parameters, you can also ch
 >If your OpenAI-compatible endpoint is served over TLS, replace `http` with `https` in `-u/--url` (for example,
 >`https://your.domain:30000`).
 
+> [!TIP]
+> VLM-only smoke test (skip pipeline models): ensure your VLM assets are local and referenced in `mineru.json` or
+> `MINERU_TOOLS_CONFIG_JSON`, then run the demo directly against the VLLM engine:
+> ```bash
+> MINERU_MODEL_SOURCE=local python demo/demo.py -p <input_path> -o <output_path> --backend vlm-vllm-engine
+> ```
+
 >[!IMPORTANT]
 >vLLM acceleration is packaged for Python 3.10–3.13 and CUDA 12 builds. If your driver already supports CUDA 12.8 (as noted in the Docker quick start) and you are on Python 3.10, a CUDA 12–class GPU such as the L40S will run MinerU with the `vlm-vllm-engine` and `vlm-http-client` backends without additional changes.
 

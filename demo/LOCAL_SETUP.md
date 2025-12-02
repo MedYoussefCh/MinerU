@@ -43,6 +43,21 @@ python demo/demo.py -p /path/to/your.pdf -o ./output
 python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-vllm-engine
 ```
 
+### One-minute VLM-only smoke test
+If you only want to validate the VLM model (and skip the pipeline models):
+
+```bash
+# 1) ensure your VLM model is in ./models/MinerU2.5-2509-1.2B (or update mineru.local.json)
+export MINERU_TOOLS_CONFIG_JSON="$(pwd)/mineru.local.json"
+export MINERU_MODEL_SOURCE=local
+
+# 2) run the VLM engine directly
+python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-vllm-engine
+```
+
+- This path never loads the pipeline models; it only exercises the VLM inference stack.
+- If you prefer an HTTP flow instead, see Option B below and start the vLLM server first.
+
 ### Option B — HTTP client talking to your vLLM server
 1. Start the server on your preferred port (e.g., 8000):
    ```bash
