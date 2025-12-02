@@ -68,6 +68,7 @@ mineru -p <input_path> -o <output_path> -b vlm-transformers
   > ```bash
   > mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
   > ```
+  >若服务端启用了TLS，可在`-u/--url`中将`http`替换为`https`（例如`https://your.domain:30000`）。
 
 > [!NOTE]
 > 所有`vllm/lmdeploy`官方支持的参数都可用通过命令行参数传递给 MinerU，包括以下命令:`mineru`、`mineru-openai-server`、`mineru-gradio`、`mineru-api`，

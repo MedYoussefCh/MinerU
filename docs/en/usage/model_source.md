@@ -42,6 +42,7 @@ mineru-models-download
 >- After downloading models locally, you can freely move the model folder to other locations while updating the model path in `mineru.json`.
 >- If you deploy the model folder to another server, please ensure you move the `mineru.json` file to the user directory of the new device and configure the model path correctly.
 >- If you need to update model files, you can run the `mineru-models-download` command again. Model updates do not support custom paths currently - if you haven't moved the local model folder, model files will be incrementally updated; if you have moved the model folder, model files will be re-downloaded to the default location and `mineru.json` will be updated.
+>- You can redirect downloads into a specific folder (for example inside the repository) by exporting `MINERU_MODEL_CACHE_DIR=/abs/path/to/models` before running `mineru-models-download`. To keep the generated config inside the repo, set `MINERU_TOOLS_CONFIG_JSON` to an absolute path (for example `/path/to/repo/mineru.local.json`).
 
 ### 2. Use Local Models for Parsing
 

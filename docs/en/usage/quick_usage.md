@@ -69,6 +69,8 @@ If you need to adjust parsing options through custom parameters, you can also ch
   > ```bash
   > mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
   > ```
+  >If your OpenAI-compatible endpoint is served over TLS, replace `http` with `https` in `-u/--url` (for example,
+  >`https://your.domain:30000`).
 
 > [!NOTE]
 > All officially supported `vllm/lmdeploy` parameters can be passed to MinerU through command line arguments, including the following commands: `mineru`, `mineru-openai-server`, `mineru-gradio`, `mineru-api`.
