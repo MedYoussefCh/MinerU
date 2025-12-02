@@ -63,12 +63,15 @@ mineru -p <input_path> -o <output_path> -b vlm-transformers
   # 或指定lmdeploy为推理引擎(需要安装lmdeploy环境)
   mineru-openai-server --engine lmdeploy --server-port 30000
   ``` 
-  >[!TIP]
-  >在另一个终端中通过http client连接vllm server（只需cpu与网络，不需要vllm环境）
-  > ```bash
-  > mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
-  > ```
-  >若服务端启用了TLS，可在`-u/--url`中将`http`替换为`https`（例如`https://your.domain:30000`）。
+>[!TIP]
+>在另一个终端中通过http client连接vllm server（只需cpu与网络，不需要vllm环境）
+> ```bash
+> mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
+> ```
+>若服务端启用了TLS，可在`-u/--url`中将`http`替换为`https`（例如`https://your.domain:30000`）。
+
+>[!IMPORTANT]
+>vLLM 加速包支持的 Python 版本为 3.10–3.13，并使用 CUDA 12 版预编译包。如果显卡驱动已满足 Docker 快速部署文档中的“CUDA 12.8 或更高”要求且当前环境是 Python 3.10，那么类似 L40S 这类 CUDA 12 级别的 GPU 可以直接运行 `vlm-vllm-engine` 和 `vlm-http-client` 后端，无需额外修改。
 
 > [!NOTE]
 > 所有`vllm/lmdeploy`官方支持的参数都可用通过命令行参数传递给 MinerU，包括以下命令:`mineru`、`mineru-openai-server`、`mineru-gradio`、`mineru-api`，

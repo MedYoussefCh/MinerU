@@ -64,13 +64,16 @@ If you need to adjust parsing options through custom parameters, you can also ch
   # Or start lmdeploy server (requires lmdeploy environment)
   mineru-openai-server --engine lmdeploy --server-port 30000
   ``` 
-  >[!TIP]
-  >In another terminal, connect to vllm server via http client (only requires CPU and network, no vllm environment needed)
-  > ```bash
-  > mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
-  > ```
-  >If your OpenAI-compatible endpoint is served over TLS, replace `http` with `https` in `-u/--url` (for example,
-  >`https://your.domain:30000`).
+>[!TIP]
+>In another terminal, connect to vllm server via http client (only requires CPU and network, no vllm environment needed)
+> ```bash
+> mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
+> ```
+>If your OpenAI-compatible endpoint is served over TLS, replace `http` with `https` in `-u/--url` (for example,
+>`https://your.domain:30000`).
+
+>[!IMPORTANT]
+>vLLM acceleration is packaged for Python 3.10–3.13 and CUDA 12 builds. If your driver already supports CUDA 12.8 (as noted in the Docker quick start) and you are on Python 3.10, a CUDA 12–class GPU such as the L40S will run MinerU with the `vlm-vllm-engine` and `vlm-http-client` backends without additional changes.
 
 > [!NOTE]
 > All officially supported `vllm/lmdeploy` parameters can be passed to MinerU through command line arguments, including the following commands: `mineru`, `mineru-openai-server`, `mineru-gradio`, `mineru-api`.
