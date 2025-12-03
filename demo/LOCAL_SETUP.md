@@ -5,9 +5,13 @@ from start to finish on a fresh machine.
 
 ## 0) Prerequisites
 - Python 3.10–3.13 (3.10 works with the published vLLM wheels).
-- CUDA 12.x drivers (e.g., 12.8) with an NVIDIA GPU such as L40S.
+- CUDA 12.x drivers (e.g., 12.8) with an NVIDIA GPU such as L40S for vLLM **or** an Apple Silicon Mac for
+  CPU/MPS-only runs.
 - Models already downloaded into `./models` plus the generated `mineru.local.json` in the repo root (from
   `scripts/prepare_local_models.sh` or your manual download).
+
+> Apple Silicon note: vLLM wheels target NVIDIA GPUs. On macOS (e.g., MacBook Pro M1, 16 GB RAM), stick to the
+> `pipeline` and `vlm-transformers` backends, which run on CPU/MPS without vLLM.
 
 ## 1) Create a virtual environment and install MinerU with VLLM extras
 
@@ -16,6 +20,27 @@ python3 -m venv .venv
 source .venv/bin/activate
 uv pip install "mineru[core,vllm]"  # or: pip install "mineru[core,vllm]"
 ```
+
+### Apple Silicon (CPU/MPS, no vLLM)
+If you are on a MacBook Pro M1 with 16 GB RAM and no NVIDIA GPU, skip the vLLM extra and use the `vlm-transformers`
+backend instead of `vlm-vllm-engine`:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install "mineru[core]"
+
+# Point to your repo-local config and models
+export MINERU_TOOLS_CONFIG_JSON="$(pwd)/mineru.local.json"
+export MINERU_MODEL_SOURCE=local
+
+# Run a CPU/MPS-only VLM parse
+python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-transformers
+```
+
+Tips for low-memory Macs:
+- Use `--start_page_id`/`--end_page_id` to limit pages while testing.
+- Close other memory-heavy apps; 16 GB is enough for small PDFs with the transformers backend but avoid very large files.
 
 ## 2) Point MinerU to the repo-local config and models
 
