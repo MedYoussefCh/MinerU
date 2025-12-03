@@ -42,6 +42,27 @@ Tips for low-memory Macs:
 - Use `--start_page_id`/`--end_page_id` to limit pages while testing.
 - Close other memory-heavy apps; 16 GB is enough for small PDFs with the transformers backend but avoid very large files.
 
+### Apple Silicon (MLX acceleration)
+If you want faster VLM inference on macOS 13.5+ with Apple Silicon, use the MLX backend. It runs locally on MPS/CPU and
+generally outperforms `vlm-transformers` on the same machine.
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install "mineru[mlx]"
+
+# Point to your repo-local config and models
+export MINERU_TOOLS_CONFIG_JSON="$(pwd)/mineru.local.json"
+export MINERU_MODEL_SOURCE=local
+
+# Run the MLX backend (no HTTP server needed)
+python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-mlx-engine
+```
+
+Notes:
+- The MLX backend uses your local VLM folder (same path as vLLM/transformers); keep `mineru.local.json` updated.
+- If you see an import error for `mlx_vlm`, reinstall the `mineru[mlx]` extra inside your virtual environment.
+
 ## 2) Point MinerU to the repo-local config and models
 
 ```bash

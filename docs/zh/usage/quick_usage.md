@@ -80,7 +80,7 @@ mineru -p <input_path> -o <output_path> -b vlm-transformers
 >[!IMPORTANT]
 >vLLM 加速包支持的 Python 版本为 3.10–3.13，并使用 CUDA 12 版预编译包。如果显卡驱动已满足 Docker 快速部署文档中的“CUDA 12.8 或更高”要求且当前环境是 Python 3.10，那么类似 L40S 这类 CUDA 12 级别的 GPU 可以直接运行 `vlm-vllm-engine` 和 `vlm-http-client` 后端，无需额外修改。
 >
->Apple Silicon / 纯 CPU 环境：vLLM 预编译包面向 NVIDIA GPU。在 macOS（例如 16 GB 内存的 MacBook Pro M1）上请使用 CPU/MPS 友好的 `vlm-transformers` 后端（只需 `pip install "mineru[core]"`），并保持 `MINERU_MODEL_SOURCE=local` 以复用已下载的模型。
+>Apple Silicon / 纯 CPU 环境：vLLM 预编译包面向 NVIDIA GPU。在 macOS（例如 16 GB 内存的 MacBook Pro M1）上请使用 CPU/MPS 友好的 `vlm-transformers` 后端（只需 `pip install "mineru[core]"`），或在 macOS 13.5+ 的 Apple Silicon 设备上切换为更快的 `vlm-mlx-engine` 后端（`pip install "mineru[mlx]"`）。保持 `MINERU_MODEL_SOURCE=local` 以复用已下载的模型。
 
 > [!NOTE]
 > 所有`vllm/lmdeploy`官方支持的参数都可用通过命令行参数传递给 MinerU，包括以下命令:`mineru`、`mineru-openai-server`、`mineru-gradio`、`mineru-api`，
