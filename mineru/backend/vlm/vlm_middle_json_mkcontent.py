@@ -268,6 +268,32 @@ def union_make(pdf_info_dict: list,
     return None
 
 
+def make_page_markdowns(pdf_info_dict: list,
+                        make_mode: str,
+                        img_buket_path: str = ''):
+    """Generate per-page markdown content for VLM results.
+
+    Returns a list of tuples ``(page_idx, markdown_str)``. Only markdown modes are supported.
+    """
+    if make_mode not in [MakeMode.MM_MD, MakeMode.NLP_MD]:
+        return []
+
+    formula_enable = get_formula_enable(os.getenv('MINERU_VLM_FORMULA_ENABLE', 'True').lower() == 'true')
+    table_enable = get_table_enable(os.getenv('MINERU_VLM_TABLE_ENABLE', 'True').lower() == 'true')
+
+    page_markdowns = []
+    for page_info in pdf_info_dict:
+        paras_of_layout = page_info.get('para_blocks')
+        page_idx = page_info.get('page_idx')
+        if not paras_of_layout:
+            page_markdowns.append((page_idx, ''))
+            continue
+        page_markdown = mk_blocks_to_markdown(paras_of_layout, make_mode, formula_enable, table_enable, img_buket_path)
+        page_markdowns.append((page_idx, '\n\n'.join(page_markdown)))
+
+    return page_markdowns
+
+
 def get_title_level(block):
     title_level = block.get('level', 1)
     if title_level > 4:
