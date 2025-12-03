@@ -2,6 +2,7 @@
 import copy
 import json
 import os
+import re
 from pathlib import Path
 
 from loguru import logger
@@ -12,15 +13,82 @@ from mineru.utils.draw_bbox import draw_layout_bbox, draw_span_bbox
 from mineru.utils.enum_class import MakeMode
 from mineru.backend.vlm.vlm_analyze import doc_analyze as vlm_doc_analyze
 from mineru.backend.pipeline.pipeline_analyze import doc_analyze as pipeline_doc_analyze
-from mineru.backend.pipeline.pipeline_middle_json_mkcontent import union_make as pipeline_union_make
+from mineru.backend.pipeline import pipeline_middle_json_mkcontent as pipeline_mkcontent
 from mineru.backend.pipeline.model_json_to_middle_json import result_to_middle_json as pipeline_result_to_middle_json
-from mineru.backend.vlm.vlm_middle_json_mkcontent import union_make as vlm_union_make
+from mineru.backend.vlm import vlm_middle_json_mkcontent as vlm_mkcontent
 from mineru.utils.guess_suffix_or_lang import guess_suffix_by_path
+
+
+def _fallback_pipeline_page_markdowns(pdf_info_dict, make_mode, img_buket_path=""):
+    """Generate page markdowns when older pipeline modules lack the helper.
+
+    This relies on ``make_blocks_to_markdown`` if present; otherwise returns an
+    empty list to keep the demo running without hard failures.
+    """
+
+    mk_blocks = getattr(pipeline_mkcontent, "make_blocks_to_markdown", None)
+    if mk_blocks is None:
+        logger.error("make_blocks_to_markdown is unavailable for pipeline markdown generation")
+        return []
+
+    if make_mode not in [MakeMode.MM_MD, MakeMode.NLP_MD]:
+        logger.error(f"Unsupported make mode for page markdown: {make_mode}")
+        return []
+
+    page_markdowns = []
+    for page_info in pdf_info_dict:
+        paras_of_layout = page_info.get("para_blocks")
+        page_idx = page_info.get("page_idx")
+        if not paras_of_layout:
+            page_markdowns.append((page_idx, ""))
+            continue
+        page_markdown = mk_blocks(paras_of_layout, make_mode, img_buket_path)
+        page_markdowns.append((page_idx, "\n\n".join(page_markdown)))
+
+    return page_markdowns
+
+
+def _fallback_vlm_page_markdowns(pdf_info_dict, make_mode, formula_enable, table_enable, img_buket_path=""):
+    """Generate page markdowns when older VLM modules lack the helper."""
+
+    mk_blocks = getattr(vlm_mkcontent, "mk_blocks_to_markdown", None)
+    if mk_blocks is None:
+        logger.error("mk_blocks_to_markdown is unavailable for VLM markdown generation")
+        return []
+
+    if make_mode not in [MakeMode.MM_MD, MakeMode.NLP_MD]:
+        logger.error(f"Unsupported make mode for page markdown: {make_mode}")
+        return []
+
+    page_markdowns = []
+    for page_info in pdf_info_dict:
+        paras_of_layout = page_info.get("para_blocks")
+        page_idx = page_info.get("page_idx")
+        if not paras_of_layout:
+            page_markdowns.append((page_idx, ""))
+            continue
+        page_markdown = mk_blocks(paras_of_layout, make_mode, formula_enable, table_enable, img_buket_path)
+        page_markdowns.append((page_idx, "\n\n".join(page_markdown)))
+
+    return page_markdowns
+
+
+pipeline_union_make = pipeline_mkcontent.union_make
+vlm_union_make = vlm_mkcontent.union_make
+
+pipeline_make_page_markdowns = getattr(pipeline_mkcontent, "make_page_markdowns", _fallback_pipeline_page_markdowns)
+vlm_make_page_markdowns = getattr(
+    vlm_mkcontent,
+    "make_page_markdowns",
+    lambda pdf_info_dict, make_mode, img_buket_path="": _fallback_vlm_page_markdowns(
+        pdf_info_dict, make_mode, formula_enable=True, table_enable=True, img_buket_path=img_buket_path
+    ),
+)
 
 
 def do_parse(
     output_dir,  # Output directory for storing parsing results
-    pdf_file_names: list[str],  # List of PDF file names to be parsed
+    pdf_file_names: list[str],  # List of PDF file names to be parsed (without extension)
     pdf_bytes_list: list[bytes],  # List of PDF bytes to be parsed
     p_lang_list: list[str],  # List of languages for each PDF, default is 'ch' (Chinese)
     backend="pipeline",  # The backend for parsing PDF, default is 'pipeline'
@@ -38,6 +106,7 @@ def do_parse(
     f_make_md_mode=MakeMode.MM_MD,  # The mode for making markdown content, default is MM_MD
     start_page_id=0,  # Start page ID for parsing, default is 0
     end_page_id=None,  # End page ID for parsing, default is None (parse all pages until the end of the document)
+    pdf_display_names: list[str] | None = None,  # Optional list of PDF names including extension
 ):
 
     if backend == "pipeline":
@@ -47,9 +116,13 @@ def do_parse(
 
         infer_results, all_image_lists, all_pdf_docs, lang_list, ocr_enabled_list = pipeline_doc_analyze(pdf_bytes_list, p_lang_list, parse_method=parse_method, formula_enable=formula_enable,table_enable=table_enable)
 
+        if pdf_display_names is None:
+            pdf_display_names = pdf_file_names
+
         for idx, model_list in enumerate(infer_results):
             model_json = copy.deepcopy(model_list)
             pdf_file_name = pdf_file_names[idx]
+            pdf_display_name = pdf_display_names[idx]
             local_image_dir, local_md_dir = prepare_env(output_dir, pdf_file_name, parse_method)
             image_writer, md_writer = FileBasedDataWriter(local_image_dir), FileBasedDataWriter(local_md_dir)
 
@@ -63,7 +136,7 @@ def do_parse(
 
             pdf_bytes = pdf_bytes_list[idx]
             _process_output(
-                pdf_info, pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
+                pdf_info, pdf_bytes, pdf_file_name, pdf_display_name, local_md_dir, local_image_dir,
                 md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
                 f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
                 f_make_md_mode, middle_json, model_json, is_pipeline=True
@@ -74,8 +147,11 @@ def do_parse(
 
         f_draw_span_bbox = False
         parse_method = "vlm"
+        if pdf_display_names is None:
+            pdf_display_names = pdf_file_names
         for idx, pdf_bytes in enumerate(pdf_bytes_list):
             pdf_file_name = pdf_file_names[idx]
+            pdf_display_name = pdf_display_names[idx]
             pdf_bytes = convert_pdf_bytes_to_bytes_by_pypdfium2(pdf_bytes, start_page_id, end_page_id)
             local_image_dir, local_md_dir = prepare_env(output_dir, pdf_file_name, parse_method)
             image_writer, md_writer = FileBasedDataWriter(local_image_dir), FileBasedDataWriter(local_md_dir)
@@ -84,7 +160,7 @@ def do_parse(
             pdf_info = middle_json["pdf_info"]
 
             _process_output(
-                pdf_info, pdf_bytes, pdf_file_name, local_md_dir, local_image_dir,
+                pdf_info, pdf_bytes, pdf_file_name, pdf_display_name, local_md_dir, local_image_dir,
                 md_writer, f_draw_layout_bbox, f_draw_span_bbox, f_dump_orig_pdf,
                 f_dump_md, f_dump_content_list, f_dump_middle_json, f_dump_model_output,
                 f_make_md_mode, middle_json, infer_result, is_pipeline=False
@@ -95,6 +171,7 @@ def _process_output(
         pdf_info,
         pdf_bytes,
         pdf_file_name,
+        pdf_display_name,
         local_md_dir,
         local_image_dir,
         md_writer,
@@ -132,6 +209,16 @@ def _process_output(
             f"{pdf_file_name}.md",
             md_content_str,
         )
+        display_name = Path(pdf_display_name or pdf_file_name).name
+        display_name = _sanitize_display_name(display_name)
+        _write_page_markdowns(
+            pdf_info=pdf_info,
+            make_mode=f_make_md_mode,
+            image_dir=image_dir,
+            md_writer=md_writer,
+            pdf_display_name=display_name,
+            is_pipeline=is_pipeline,
+        )
 
     if f_dump_content_list:
         make_func = pipeline_union_make if is_pipeline else vlm_union_make
@@ -154,6 +241,49 @@ def _process_output(
         )
 
     logger.info(f"local output dir is {local_md_dir}")
+
+
+def _write_page_markdowns(
+        pdf_info,
+        make_mode,
+        image_dir,
+        md_writer,
+        pdf_display_name,
+        is_pipeline,
+):
+    if make_mode not in [MakeMode.MM_MD, MakeMode.NLP_MD]:
+        return
+
+    make_page_func = pipeline_make_page_markdowns if is_pipeline else vlm_make_page_markdowns
+    page_markdowns = make_page_func(pdf_info, make_mode, image_dir)
+    if not page_markdowns:
+        return
+
+    total_pages = len(page_markdowns)
+    pad_width = max(2, len(str(total_pages)))
+
+    for idx, content in enumerate(page_markdowns):
+        page_idx, page_markdown = content
+        if page_idx is None:
+            page_number = idx + 1
+        else:
+            page_number = page_idx + 1
+        md_writer.write_string(
+            f"{pdf_display_name}.page_{str(page_number).zfill(pad_width)}.md",
+            page_markdown,
+        )
+
+
+def _sanitize_display_name(display_name: str) -> str:
+    """Create a filesystem-safe filename from the provided display name."""
+
+    sanitized = re.sub(r"[/\\]+", "", display_name)
+    sanitized = re.sub(r"[^\w.-]", "_", sanitized, flags=re.UNICODE)
+
+    if sanitized.startswith("."):
+        sanitized = f"_{sanitized[1:]}"
+
+    return sanitized or "document"
 
 
 def parse_doc(
@@ -193,15 +323,19 @@ def parse_doc(
         file_name_list = []
         pdf_bytes_list = []
         lang_list = []
+        file_name_with_suffix_list = []
         for path in path_list:
             file_name = str(Path(path).stem)
+            file_name_with_suffix = str(Path(path).name)
             pdf_bytes = read_fn(path)
             file_name_list.append(file_name)
+            file_name_with_suffix_list.append(file_name_with_suffix)
             pdf_bytes_list.append(pdf_bytes)
             lang_list.append(lang)
         do_parse(
             output_dir=output_dir,
             pdf_file_names=file_name_list,
+            pdf_display_names=file_name_with_suffix_list,
             pdf_bytes_list=pdf_bytes_list,
             p_lang_list=lang_list,
             backend=backend,

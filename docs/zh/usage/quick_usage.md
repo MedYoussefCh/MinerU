@@ -63,11 +63,24 @@ mineru -p <input_path> -o <output_path> -b vlm-transformers
   # 或指定lmdeploy为推理引擎(需要安装lmdeploy环境)
   mineru-openai-server --engine lmdeploy --server-port 30000
   ``` 
-  >[!TIP]
-  >在另一个终端中通过http client连接vllm server（只需cpu与网络，不需要vllm环境）
-  > ```bash
-  > mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
-  > ```
+>[!TIP]
+>在另一个终端中通过http client连接vllm server（只需cpu与网络，不需要vllm环境）
+> ```bash
+> mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
+> ```
+>若服务端启用了TLS，可在`-u/--url`中将`http`替换为`https`（例如`https://your.domain:30000`）。
+
+>[!TIP]
+>若只想验证 VLM 模型（跳过 pipeline 模型），可先在 `mineru.json` 或 `MINERU_TOOLS_CONFIG_JSON` 中写入本地 VLM 路径，
+>再直接使用 VLLM 引擎运行 demo：
+>```bash
+>MINERU_MODEL_SOURCE=local python demo/demo.py -p <input_path> -o <output_path> --backend vlm-vllm-engine
+>```
+
+>[!IMPORTANT]
+>vLLM 加速包支持的 Python 版本为 3.10–3.13，并使用 CUDA 12 版预编译包。如果显卡驱动已满足 Docker 快速部署文档中的“CUDA 12.8 或更高”要求且当前环境是 Python 3.10，那么类似 L40S 这类 CUDA 12 级别的 GPU 可以直接运行 `vlm-vllm-engine` 和 `vlm-http-client` 后端，无需额外修改。
+>
+>Apple Silicon / 纯 CPU 环境：vLLM 预编译包面向 NVIDIA GPU。在 macOS（例如 16 GB 内存的 MacBook Pro M1）上请使用 CPU/MPS 友好的 `vlm-transformers` 后端（只需 `pip install "mineru[core]"`），或在 macOS 13.5+ 的 Apple Silicon 设备上切换为更快的 `vlm-mlx-engine` 后端（`pip install "mineru[mlx]"`）。保持 `MINERU_MODEL_SOURCE=local` 以复用已下载的模型。
 
 > [!NOTE]
 > 所有`vllm/lmdeploy`官方支持的参数都可用通过命令行参数传递给 MinerU，包括以下命令:`mineru`、`mineru-openai-server`、`mineru-gradio`、`mineru-api`，
@@ -114,3 +127,5 @@ MinerU 现已实现开箱即用，但也支持通过配置文件扩展功能。�
 - `models-dir`：
     * 用于指定本地模型存储目录，请为`pipeline`和`vlm`后端分别指定模型目录，
     * 指定目录后您可通过配置环境变量`export MINERU_MODEL_SOURCE=local`来使用本地模型。
+    * 离线提示：将 `mineru.template.json` 复制到工作目录，仅填入本地 `vlm` 模型路径（如 `/abs/path/minerU2.5-2509-1.2B`），
+      然后通过 `MINERU_TOOLS_CONFIG_JSON` 指向该文件即可运行。

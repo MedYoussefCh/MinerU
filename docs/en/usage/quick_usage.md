@@ -64,11 +64,25 @@ If you need to adjust parsing options through custom parameters, you can also ch
   # Or start lmdeploy server (requires lmdeploy environment)
   mineru-openai-server --engine lmdeploy --server-port 30000
   ``` 
-  >[!TIP]
-  >In another terminal, connect to vllm server via http client (only requires CPU and network, no vllm environment needed)
-  > ```bash
-  > mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
-  > ```
+>[!TIP]
+>In another terminal, connect to vllm server via http client (only requires CPU and network, no vllm environment needed)
+> ```bash
+> mineru -p <input_path> -o <output_path> -b vlm-http-client -u http://127.0.0.1:30000
+> ```
+>If your OpenAI-compatible endpoint is served over TLS, replace `http` with `https` in `-u/--url` (for example,
+>`https://your.domain:30000`).
+
+> [!TIP]
+> VLM-only smoke test (skip pipeline models): ensure your VLM assets are local and referenced in `mineru.json` or
+> `MINERU_TOOLS_CONFIG_JSON`, then run the demo directly against the VLLM engine:
+> ```bash
+> MINERU_MODEL_SOURCE=local python demo/demo.py -p <input_path> -o <output_path> --backend vlm-vllm-engine
+> ```
+
+>[!IMPORTANT]
+>vLLM acceleration is packaged for Python 3.10–3.13 and CUDA 12 builds. If your driver already supports CUDA 12.8 (as noted in the Docker quick start) and you are on Python 3.10, a CUDA 12–class GPU such as the L40S will run MinerU with the `vlm-vllm-engine` and `vlm-http-client` backends without additional changes.
+>
+>Apple Silicon / CPU-only: vLLM targets NVIDIA GPUs. On macOS (e.g., MacBook Pro M1 with 16 GB RAM) use the CPU/MPS-friendly `vlm-transformers` backend instead (`pip install "mineru[core]"` is sufficient) or switch to the faster `vlm-mlx-engine` backend (`pip install "mineru[mlx]"`) on macOS 13.5+ with Apple Silicon. Keep `MINERU_MODEL_SOURCE=local` to reuse your downloaded models.
 
 > [!NOTE]
 > All officially supported `vllm/lmdeploy` parameters can be passed to MinerU through command line arguments, including the following commands: `mineru`, `mineru-openai-server`, `mineru-gradio`, `mineru-api`.
@@ -112,7 +126,9 @@ Here are some available configuration options:
           }
           ```
   
-- `models-dir`: 
+- `models-dir`:
     * Used to specify local model storage directory
     * Please specify model directories for `pipeline` and `vlm` backends separately.
     * After specifying the directory, you can use local models by configuring the environment variable `export MINERU_MODEL_SOURCE=local`.
+    * Air-gapped tip: copy `mineru.template.json` to your working directory, set only the `vlm` path to your offline folder
+      (for example `/abs/path/minerU2.5-2509-1.2B`), then export `MINERU_TOOLS_CONFIG_JSON` to that file before running.
