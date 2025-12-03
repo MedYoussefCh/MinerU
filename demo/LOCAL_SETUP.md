@@ -27,6 +27,32 @@ export MINERU_MODEL_SOURCE=local
 If you relocated the models, edit `mineru.local.json` to update `models-dir.pipeline` and `models-dir.vlm` so they match your
 paths.
 
+### No internet? Point MinerU to your existing VLM folder
+If the machine has no outbound access but you already copied the VLM model (e.g., folder `minerU2.5-2509-1.2B`), you can skip
+all downloads and only wire its path into the config:
+
+1. Copy the template to a repo-local config (if it does not exist yet):
+   ```bash
+   cp mineru.template.json mineru.local.json
+   ```
+2. Edit `mineru.local.json` and set the absolute path of your VLM folder:
+   ```json
+   {
+     "models-dir": {
+       "pipeline": "",  // leave empty if you do not have pipeline models
+       "vlm": "/absolute/path/to/minerU2.5-2509-1.2B"
+     }
+   }
+   ```
+3. Export the config + force local source, then run the VLM backend:
+   ```bash
+   export MINERU_TOOLS_CONFIG_JSON="$(pwd)/mineru.local.json"
+   export MINERU_MODEL_SOURCE=local
+   python demo/demo.py -p /path/to/your.pdf -o ./output --backend vlm-vllm-engine
+   ```
+
+This keeps everything offline and only uses your pre-downloaded VLM model.
+
 ## 3) Quick test with the default pipeline backend
 
 ```bash

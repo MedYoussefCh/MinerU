@@ -125,3 +125,5 @@ MinerU 现已实现开箱即用，但也支持通过配置文件扩展功能。�
 - `models-dir`：
     * 用于指定本地模型存储目录，请为`pipeline`和`vlm`后端分别指定模型目录，
     * 指定目录后您可通过配置环境变量`export MINERU_MODEL_SOURCE=local`来使用本地模型。
+    * 离线提示：将 `mineru.template.json` 复制到工作目录，仅填入本地 `vlm` 模型路径（如 `/abs/path/minerU2.5-2509-1.2B`），
+      然后通过 `MINERU_TOOLS_CONFIG_JSON` 指向该文件即可运行。

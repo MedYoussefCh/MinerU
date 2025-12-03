@@ -124,7 +124,9 @@ Here are some available configuration options:
           }
           ```
   
-- `models-dir`: 
+- `models-dir`:
     * Used to specify local model storage directory
     * Please specify model directories for `pipeline` and `vlm` backends separately.
     * After specifying the directory, you can use local models by configuring the environment variable `export MINERU_MODEL_SOURCE=local`.
+    * Air-gapped tip: copy `mineru.template.json` to your working directory, set only the `vlm` path to your offline folder
+      (for example `/abs/path/minerU2.5-2509-1.2B`), then export `MINERU_TOOLS_CONFIG_JSON` to that file before running.
